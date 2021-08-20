@@ -4,7 +4,9 @@
 
 import molconst12c16o2
 import numpy as np
+import decimal as dc
 
+dc.getcontext().prec = 32
 
 class CO2LaserLine():
 
@@ -49,17 +51,23 @@ class CO2LaserLine():
     def rcmtomkm(self):
         self.wavelength = 10000.0/self.wavelength
      
+branches = ("P", "R")
+centers = (10, 9)
+branches = [center + branch for center in centeroflines for branch
+            in branchlist]
+CO2emissionlines = [branch + str(numberoflines) for numberoflines
+                     in range(2,54,2) for branch in branches]
 def printalllines():
-    branches = ("P", "R")
-    centers = (10, 9)
     for center in centers:
         for branch in branches:
             for line in range(1,25):
                 A = CO2LaserLine(2*line, branch, center)
-                A.rcmtomkm()
                 print(A.cen_wav, A.branch, A.jnum,' wavelength[mkm] - ',
                       A.wavelength)
-        
+
+
+def getlinesdict():
+    
 
 if __name__ == '__main__':
     printalllines()
