@@ -48,6 +48,20 @@ def get_line_name(center: int, branch: str, jnum: int) -> str:
     return line_name
 
 
+def get_line_center_branch(line: str) -> str:
+    center = get_line_center(line)
+    branch = get_line_branch(line)
+    center_branch = str(center) + branch
+    return center_branch
+
+
+def get_line_parameters(line_name: str) -> list:
+    center = get_line_center(line_name)
+    branch = get_line_branch(line_name)
+    jnum = get_line_jnum(line_name)
+    return [center, branch, jnum]
+
+
 def convert_wavelength_cm_in_mkm(wavelength_in_cm: float) -> float:
     wavelength_in_mkm = 10000.0/float(wavelength_in_cm)
     return wavelength_in_mkm
@@ -170,10 +184,6 @@ class CO2lines:
 
 
 if __name__ == '__main__':
-    p10 = CO2lines(center = 10, branch = 'P', jnum_min = 12, jnum_max = 12,
-                   unit = 'cm-1')
+    p10 = CO2lines(center = 10, branch = 'P', jnum_min = 2, jnum_max = 58,
+                   unit = 'mkm')
     p10.printlines()
-    print(p10['10_P_12'])
-    for item in p10:
-        print(item, '    ', p10[item])
-    compare_all_lines_wavelength()

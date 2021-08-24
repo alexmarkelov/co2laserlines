@@ -3,9 +3,10 @@
 
 import math
 import numpy as np
+import CO2lines_wavelength as wl
 
 PLANK = 6.62607015e-34
-LIGHTVEL = 299792458
+LIGHT_VELOCITY = wl.LIGTH_VELOCITY
 KBOLTZMANN = 1.380649e-23
 PI = 3.14159265358979323846264
 ROTCONST = 38.7141392007267
@@ -13,101 +14,163 @@ RGAS = 8.31431
 NAVOGADRO = 6.022140*10**23
 
 
-class LineWidthConst:
-    
+line_width_const = {
+    '10P': 'line_width_const_10P',
+    '10R': 'line_width_const_10R',
+    '9P': 'line_width_const_9P',
+    '9R': 'line_width_const_9R'
+    }
+coef_B_const = {
+    '10P': 'coef_B_const_10P',
+    '10R': 'coef_B_const_10R',
+    '9P': 'coef_B_const_9P',
+    '9R': 'coef_B_const_9R'
+    }
 
-def linewidthconst(branch, wavelength, jnum):
-    width = None
-    if branch == 'P' and wavelength == 10:
-        width = (-0.0733*jnum + 9.1664)/2
-    elif branch == 'R' and wavelength == 10:
-        width = (-0.0771*jnum + 9.0874)/2
-    elif branch == 'P' and wavelength == 9:
-        width = (-0.0563*jnum + 8.7477)/2
-    elif branch == 'R' and wavelength == 9:
-        width = (-0.0479*jnum + 8.1615)/2
-    else:
-        width = None
+
+
+def line_width_const_10P(jnum: int) -> float:
+    width = (-0.0733*jnum + 9.1664)/2
     return width
 
-def getlinewidth(lwconst, pressure, temp, CO2, N2, He, Xe):
-    lwidth = lwconst*10e6/PI*pressure*(CO2 + 0.73*N2 + 0.64*(He + Xe))*math.sqrt(300/temp)
-    return lwidth
 
-def lineform(linewidth, wl, frequency):
-    return (linewidth/2*PI)*((frequency - wl)**2+(linewidth/2)**2)**-1
+def line_width_const_10R(jnum: int) -> float:
+    width = (-0.0771*jnum + 9.0874)/2
+    return width
 
-def ngasmixture(CO2, N2, He, Xe):
-    return (1 - Xe)*(CO2*44 + N2*28 + He*4) + Xe*131.29
 
-def numberofCO2mol(weight, heght, length, pressure, temp, CO2, He, Ne ):
-    V = weight*heght*length
-    molarmass = ngasmixture(CO2, N2, He, Ne)
-    ng = (pressure*molarmass*V)/(RGAS*temp)
-    numberCO2mol = (CO2*44/molarmass)*ng*NAVOGADRO
-    return numberCO2mol
+def line_width_const_9P(jnum: int) -> float:
+    width = (-0.0563*jnum + 8.7477)/2
+    return width
 
-def coefB(branch, wl, jnum):
-    if branch == 'P' and wl == 10:
-        B = -0.0009*jnum + 0.1902
-    elif branch == 'R' and wl == 10:
-        B = -0.001*jnum + 0.2035
-    elif branch == 'P' and wl == 9:
-        B = 0.0011*jnum + 0.1542
-    elif branch == 'R' and wl == 9:
-        B = 0.0014*jnum + 0.1567
-    else:
-        B = None
+
+def line_width_const_9R(jnum: int) -> float:
+    width = (-0.0479*jnum + 8.1615)/2
+    return width
+
+
+def coef_B_const_10P(jnum: int) -> float:
+    B = -0.0009*jnum + 0.1902
     return B
 
-def energyF(self, j):
-    return ROTCONST*j*(j + 1)
 
-    
+def coef_B_const_10R(jnum: int) -> float:
+    B = -0.001*jnum + 0.2035
+    return B
+
+
+def coef_B_const_9P(jnum: int) -> float:
+    B = 0.0011*jnum + 0.1542
+    return B
+
+
+def coef_B_const_9R(jnum: int) -> float:
+    B = 0.0014*jnum + 0.1567
+    return B
+
+
+def get_line_coef_B(line: str) -> float:
+    center_branch = wl.get_line_center_branch(line)
+    jnum = wl.get_line_jnum(line)
+    const_B_calc = eval(coef_B_const[center_branch])
+    B = const_B_calc(jnum)
+    return B
+
+
+assert(get_line_coef_B('10_P_20'))
+
+
+def get_line_width_const(line: str) -> float:
+    center_branch = wl.get_line_center_branch(line)
+    jnum = wl.get_line_jnum(line)
+    line_width_calc = eval(line_width_const[center_branch])
+    width = line_width_calc(jnum)
+    return width
+
+
+assert(get_line_width_const('10_P_20'))
+
+
+class GasMixture:
+    def __init__(self, *args, pressure=100, temp=300,
+                 CO2=1, N2=1, He=5, Xe=0.05):
+        self.pressure = pressure
+        self.temp = temp
+        self.CO2 = CO2/(CO2 + N2 + He +Xe*(CO2 + N2 + He))
+        self.N2 = N2/(CO2 + N2 + He +Xe*(CO2 + N2 + He))
+        self.He = He/(CO2 + N2 + He +Xe*(CO2 + N2 + He))
+        self.Xe = Xe/(CO2 + N2 + He +Xe*(CO2 + N2 + He))
+        self.n_gas = self.get_n_gas_mixture()
+
+    def get_n_gas_mixture(self) -> float:
+        n_gas = (1 - self.Xe)*(self.CO2*44 + self.N2*28 +
+                               self.He*4) + self.Xe*131.29
+        return n_gas
+
+
+def get_line_width(line: str, gas_mixture: GasMixture = GasMixture() ):
+    line_width_const = get_line_width_const(line)
+    line_width = line_width_const*10e6*gas_mixture.pressure*(
+        gas_mixture.CO2 + 0.73*gas_mixture.N2 + 0.64*(
+            gas_mixture.He + gas_mixture.Xe))*math.sqrt(300/gas_mixture.temp)
+    return line_width
+
+
+def lineform(linewidth, wl, frequency):
+    return (linewidth/(2*PI))/((frequency - wl)**2+(linewidth/2)**2)
+
+gas_mixture_1 = GasMixture()
+
+class GasVolume:
+    def __init__(self, *args, width=0.3, height=0.3, length=13.6, diameter=None):
+        if diameter:
+            self.length = length
+            self.diameter = diametr
+            self.volume = PI*diameter**2/4*length
+        else:
+            self.length = length
+            self.width = width
+            self.height = height
+            self.volume = length*width*height
+
+
+def number_CO2_mol(gas_volume=GasVolume(), gas_mixture=GasMixture()):
+    mol_gas = (gas_mixture.pressure*gas_mixture.n_gas*gas_volume.volume)/(
+        RGAS*temp)
+    number_CO2_mol = (CO2*44/gas_mixture.n_gas)*mol_gas*NAVOGADRO
+    return number_CO2_mol
+
+
+def energy_F(line: str) -> float:
+    jnum = wl.get_line_jnum(line)
+    return ROTCONST*jnum*(jnum + 1)
+
+
+def member_A(line: str, gas_mixture: GasMixture):
+    wl = 
+    ((LIGHTVEL/wl)**2)*PLANK*LIGHTVEL*ROTCONST/(4*PI*KBOLTZMANN*temp)
+
+
 class CO2AmplificationCurve:
-
-    def __init__(self, jnum, branch, central_wavelength, pressure,
-                 temperature, CO2part, N2part, Hepart, Xepart, df, Nmax,
-                 laser_width, laser_heigth, laser_length, pump_coeff):
-        self.jnum  = jnum
-        self.branch = branch
-        self.wl = central_wavelength
-        self.pr = pressure
-        self.temp = temperature
-        self.CO2 = CO2part
-        self.N2 = N2part
-        self.He = Hepart
-        self.Xe = Xepart
+    def __init__(self, line, *args, gas_mixture=GasMixture(), df=1e5, Nmax=10000,
+                 gas_volume=GasVolume, pump_coeff=0.5):
+        self.line  = line
+        self.gas_mixture = gas_mixture
+        self.gas_volume = gas_volume
+        self.pump_coeff = pump_coeff
         self.df = df
-        self.Nmax = int(Nmax)
-        self.lasw = laser_width
-        self.lash = laser_heigth
-        self.lasl = laser_length
-        self.pump = pump_coeff
-        self.ampcurve = np.zeros((self.Nmax, 2))
-        self._lwconst = linewidthconst(self.branch, self.wl, self.jnum)
-        self._linewidth = getlinewidth(self._lwconst, self.pr, self.temp, self.CO2, self.N2, self.He, self.Xe)
-        self._numCO2mol = numberofCO2mol()
-        getlineform()
-
+        self.Nmax = Nmax
+        self.amp_curve = np.zeros((self.Nmax, 2))
+        self.line_ = get_line_width(self.line, self.gas_mixture)
+        self.numCO2mol = number_CO2_mol(self.gas_volume, self.gas_mixture)
     
-
-    
-        
-
-    
-
-
-
-
-
-    def constAmp(self):
-        B = coefB()
+    def const_ampl(self):
+        B = get_line_coef_B(self.line)
         F = energyF(self.jnum)
         E = PLANK*LIGHTVEL/(KBOLTZMANN*self.temp)
         С = ((LIGHTVEL/self.wl)**2)*PLANK*LIGHTVEL*ROTCONST/(4*PI*KBOLTZMANN*self.temp)
-        Ndown = self._numCO2mol*math.exp(-PLANK*LIGHTVEL*100*1400/(KBOLTZMANN*self.temp))
-        Nup = self._numCO2mol*self.pump - Ndown
+        Ndown = self.numCO2mol*math.exp(-PLANK*LIGHTVEL*100*1400/(KBOLTZMANN*self.temp))
+        Nup = self.numCO2mol*self.pump - Ndown
         if self.branch == 'P' and self.wl == 10:
             D = C*(2*self.jnum - 1)*(coefB())*(Nup*math.exp(-energyF(self.jnum - 1)*E)
                                            - Ndown*math.exp(-energyF(self.jnum)*E))
