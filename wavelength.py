@@ -1,3 +1,14 @@
+'''
+wavelength module includes 2 classes:
+Line for storing information about emission line of 12C16O2
+molecule.
+Branch contains number of the Lines related to one of the four
+emission branches of CO2 molecule.
+
+Wavelength of CO2 emission line can be obtained from Vitterman
+book or calculated.
+'''
+
 import molconst12c16o2
 
 VITTERMANN_FILE_NAME = 'CO2laserlinesVitterman.dat'
@@ -20,18 +31,18 @@ unit_selection = {
                   }
 
 
-source_selection ={
+source_selection = {
                     'calc': 'calculate_wavelength',
                     'vitt': 'get_wavelength_vitt'
                    }
 
 
-vitt_const ={
-            '10': 0,
-            '9': 2,
-            'P': 0,
-            'R': 1
-            }
+vitt_const = {
+              '10': 0,
+              '9': 2,
+              'P': 0,
+              'R': 1
+             }
 
 
 def unit_checker(unit):
@@ -62,7 +73,7 @@ def const_branch_R(j_num: int) -> int:
 
 def get_line_name(center: int, branch: str, jnum: int) -> str:
     '''Get line name from line parameter(center, branch, jnum)'''
-    line_name = str(center) + branch  + str(jnum)
+    line_name = str(center) + branch + str(jnum)
     return line_name
 
 
@@ -119,7 +130,7 @@ def wavelength_calculator(line_const: tuple) -> float:
 
 
 def calculate_wavelength(center: int=10, branch: str='P',
-                         jnum:int=20) -> float:
+                         jnum: int=20) -> float:
     '''Calculate wavelength of CO2 laser emission line by using formula
     from paper "Infrared energy levels and intensities of carbon dioxide-II."
     L.S Rothman, L. D. P. Young, J. Quant. Spect. Radiat. Transfer. 1981
@@ -133,14 +144,14 @@ def calculate_wavelength(center: int=10, branch: str='P',
 
 class Line:
     '''
-Line is a class for description vibrational-rotational transition
-in CO2 molecula. Line includes number parameters of the line,
-center - central wavelength of transition(10 or 9), branch - branch
-of the transition('P' or 'R'), jnum - rotational number of lower
-energy level, unit - unit of wavelength, source - calculated or vitterman.
+    Line is a class for description vibrational-rotational transition
+    in CO2 molecula. Line includes number parameters of the line,
+    center - central wavelength of transition(10 or 9), branch - branch
+    of the transition('P' or 'R'), jnum - rotational number of lower
+    energy level, unit - unit of wavelength, source - calculated or vitterman.
     '''
     def __init__(self, center: int=10, branch: str='P', jnum: int=20, *args,
-                 unit: str='cm-1', source: str='calc' ):
+                 unit: str='cm-1', source: str='calc'):
         self.__center = center
         self.__branch = branch
         self.__jnum = jnum
@@ -150,8 +161,7 @@ energy level, unit - unit of wavelength, source - calculated or vitterman.
                                                 self.__branch, self.__jnum)
         self.__frequency = convert_rcm_in_hz(self.__wavelength)
         self.unit_check_and_calc()
-        
-            
+
     @property
     def center(self):
         return self.__center
@@ -167,7 +177,7 @@ energy level, unit - unit of wavelength, source - calculated or vitterman.
     @property
     def unit(self):
         return self.__unit
-    
+
     @unit.setter
     def unit(self, unit: str='mkm'):
         if unit_checker(unit):
@@ -176,6 +186,7 @@ energy level, unit - unit of wavelength, source - calculated or vitterman.
                                             sel_unit=self.__unit)[self.__name]
             return self.__unit
         return None
+
     @property
     def wavelength(self):
         return self.__wavelength
@@ -187,18 +198,19 @@ energy level, unit - unit of wavelength, source - calculated or vitterman.
     @property
     def frequency(self):
         return self.__frequency
-    
+
     def unit_check_and_calc(self):
         if self.__unit != 'cm-1':
             if unit_checker(self.__unit):
                 self.__wavelength = eval(unit_selection[self.__unit])(
                     self.__wavelength)
         pass
-    
+
+
 class Branch:
     '''Branch is list of Lines'''
     def __init__(self, center: int=10, branch: str='P', jnum_min: int=2,
-                 jnum_max: int=58, *args, unit: str='mkm', source:str='calc'):
+                 jnum_max: int=58, *args, unit: str='mkm', source: str='calc'):
         self.__center = center
         self.__branch = branch
         self.__jnum_min = jnum_min
@@ -223,11 +235,12 @@ class Branch:
 
 def compare_wavelength_source():
     '''Compare wavelength from Vitterman and from calculation'''
-    calc = [Branch(center, branch, 2, 58, unit='cm-1', source = 'calc') for
+    calc = [Branch(center, branch, 2, 58, unit='cm-1', source='calc') for
             center in center_lines_list for branch in branch_list]
-    vitt = [Branch(center, branch, 2, 58, unit='cm-1', source = 'vitt') for
+    vitt = [Branch(center, branch, 2, 58, unit='cm-1', source='vitt') for
             center in center_lines_list for branch in branch_list]
-    print('Compare wavelength from two sources', '\n', 'Line', '-'*10, 'df[hz]')
+    print('Compare wavelength from two sources', '\n', 'Line', '-'*10,
+          'df[hz]')
     for br_num, branch in enumerate(calc):
         for line_num, line in enumerate(branch):
             print(line.name, '-> df = ',

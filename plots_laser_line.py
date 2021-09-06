@@ -9,6 +9,7 @@ x_line = list()
 y_line = list()
 fig, ax = plt.subplots()
 for line in branch_10P:
-    amplification = amp.AmplificationCurve(line, gas_mixture=gas_mixture1, gas_volume=gas_volume1)
+    amplification = amp.AmplificationCurve(line, gas_mixture=gas_mixture1,
+                                           gas_volume=gas_volume1)
     ax.plot(amplification.amp_curve_freq, amplification.amp_curve_ampl)
 plt.show()

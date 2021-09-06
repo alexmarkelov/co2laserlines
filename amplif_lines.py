@@ -1,6 +1,6 @@
 '''
 Module intended to calculate a curve of amplification line of CO2 molecular.
-Four branches (R, P on 10,9 mkm) are available.
+Four branches (R, P for 10,9 mkm) are available.
 
 amplif_lines includes 3 classes:
 
@@ -27,7 +27,6 @@ df is frequency step,
 2*Nmax + 1 is a number of steps, for computing CO2 line amplification curve.
 ''' 
 
-
 import math
 import wavelength as wl
 
@@ -39,7 +38,7 @@ ROTCONST = 38.7141392007267
 RGAS = 8.31431
 NAVOGADRO = 6.022140*10**23
 
-#The dictionaries bellow are needed for calculation amlification curve 
+# The dictionaries bellow are needed for calculation amlification curve
 line_width_const = {
     '10P': 'line_width_const_10P',
     '10R': 'line_width_const_10R',
@@ -59,10 +58,11 @@ coef_number_degeneration = {
     '9': 'number_degeneration_9mkm'
     }
 
-up_line_branch_const ={
+up_line_branch_const = {
     'P': 'self.line.jnum-1',
     'R': 'self.line.jnum+1'
     }
+
 
 def up_line_branch(line: wl.Line) -> int:
     '''Return jnum of upper level'''
@@ -78,9 +78,11 @@ def number_degeneration_9mkm(jnum: int):
     '''Return the degeneration of lower level for 9 mkm branch'''
     return 2*jnum+3
 
+
 def number_degeneration_calc(line: wl.Line):
     '''Return the degeneration for the line'''
     return eval(coef_number_degeneration[str(line.center)])(line.jnum)
+
 
 def line_width_const_10P(jnum: int) -> float:
     '''Return width for 10P branch with J = jnum'''
@@ -158,10 +160,10 @@ class GasMixture:
                  CO2=1, N2=1, He=5, Xe=0.05):
         self.pressure = pressure
         self.temp = temp
-        self.CO2 = CO2/(CO2 + N2 + He +Xe*(CO2 + N2 + He))
-        self.N2 = N2/(CO2 + N2 + He +Xe*(CO2 + N2 + He))
-        self.He = He/(CO2 + N2 + He +Xe*(CO2 + N2 + He))
-        self.Xe = Xe/(CO2 + N2 + He +Xe*(CO2 + N2 + He))
+        self.CO2 = CO2/(CO2 + N2 + He + Xe*(CO2 + N2 + He))
+        self.N2 = N2/(CO2 + N2 + He + Xe*(CO2 + N2 + He))
+        self.He = He/(CO2 + N2 + He + Xe*(CO2 + N2 + He))
+        self.Xe = Xe/(CO2 + N2 + He + Xe*(CO2 + N2 + He))
         self.n_gas = self.get_n_gas_mixture()
 
     def get_n_gas_mixture(self) -> float:
@@ -170,7 +172,7 @@ class GasMixture:
         return n_gas
 
 
-def get_line_width(line: str, gas_mixture: GasMixture = GasMixture() ):
+def get_line_width(line: str, gas_mixture: GasMixture = GasMixture()):
     '''Return line width for input line and gas mixture'''
     line_width_const = get_line_width_const(line)
     line_width = line_width_const*10e6*gas_mixture.pressure*(
@@ -182,7 +184,7 @@ def get_line_width(line: str, gas_mixture: GasMixture = GasMixture() ):
 def lineform(frequency: float, line_center_frequency: float,
              half_line_width: float):
     '''The function determine the line form'''
-    return (half_line_width/PI)/((frequency - line_center_frequency)**2+
+    return (half_line_width/PI)/((frequency - line_center_frequency)**2 + 
                                   half_line_width**2)
 
 
@@ -223,6 +225,7 @@ def member_A(line: wl.Line, gas_mixture: GasMixture):
         4*PI*KBOLTZMANN*gas_mixture.temp)
     return value
 
+
 def member_B(gas_mixture: GasMixture):
     '''Get parameter B for amplification line magnitude,
        depends on gas mixture'''
@@ -239,10 +242,21 @@ def number_up_down_mol(number_CO2_mol: float, gas_mixture: GasMixture,
     Nup = number_CO2_mol*pump_coeff - Ndown
     return {'Nup': Nup, 'Ndown': Ndown}
 
+
 class AmplificationCurve:
+    '''Apmlification curve is a class for storing data of amplification curve
+       of emission line CO2 molecule.
+       Required parameter is line, instance of Line class.
+       Optional parameters are:
+       gas_mixture describes gas mixture parameter, instance of GasMixture
+       class, gas_volume describes volume of gas mixture, instance of
+       GasVolume class, df is a frequency step in hz, Nmax - is a half of 
+       maximum steps for calculation amplification curve, pump_coeff is
+       a part of all CO2 molecules in exited state.
+       '''
     def __init__(self, line: wl.Line, *args, gas_mixture=GasMixture(), df=1e5,
                  Nmax=10000, gas_volume=GasVolume(), pump_coeff=0.5):
-        self.__line  = line
+        self.__line = line
         self.__gas_mixture = gas_mixture
         self.__gas_volume = gas_volume
         self.__pump_coeff = pump_coeff
@@ -291,42 +305,43 @@ class AmplificationCurve:
     @property
     def amp_curve_ampl(self):
         return self.__amp_curve_ampl
-    
+
     def get_const_ampl(self):
         A = member_A(self.__line, self.__gas_mixture)
-        #print(A)
         B = member_B(self.__gas_mixture)
-        #print(B)
         coef_B = get_line_coef_B(self.__line)
-        #print(coef_B)
         up_down = number_up_down_mol(self.__numCO2mol,
-                                            self.__gas_mixture, self.__pump_coeff)
+                                     self.__gas_mixture, self.__pump_coeff)
         number_degeneration = number_degeneration_calc(self.__line)
-        #print(up_down, number_degeneration)
         const_ampl = A*coef_B*number_degeneration_calc(self.__line)*(
             up_down['Nup']*math.exp(-get_energy_F(eval(
                 up_line_branch(self.__line)))*B)- up_down['Ndown']*math.exp(
                     -get_energy_F(self.__line.jnum)*B))
         self.__amp_coeff = const_ampl
         return const_ampl
-        
-        
+
     def get_line_form(self):
         for index in range(2*self.__Nmax + 1):
-            freq = self.__line.wavelength + self.__df*self.__Nmax - self.__df*index
+            freq = self.__line.wavelength + self.__df*self.__Nmax - \
+                   self.__df*index
             self.__amp_curve_freq.append(freq)
             self.__amp_curve_ampl.append(self.__amp_coeff*lineform(freq,
                             self.__line.wavelength, self.__half_line_width))
         pass
 
+    def __iter__(self):
+        return zip(self.__amp_curve_freq, self.__amp_curve_ampl)
+
+    def __getitem__(self, item):
+        return [self.__amp_curve_freq[item], self.__amp_curve_ampl[item]]
+
 if __name__ == "__main__":
-    line10P20 = wl.Line(10,'P', 20, unit='hz' )
+    line10P20 = wl.Line(10, 'P', 20, unit='hz')
     gas_mixture1 = GasMixture(temp=400)
     gas_volume1 = GasVolume()
     branch_10P = wl.Branch(10, 'P', 2, 58, unit='hz')
+    print('line - amplification coefficient' )
     for line in branch_10P:
-        amplification = AmplificationCurve(line, gas_mixture = gas_mixture1, gas_volume = gas_volume1)
-        print(line.name, ' - ',amplification.amplif)
-
-
-    
+        amplification = AmplificationCurve(line, gas_mixture = gas_mixture1,
+                                           gas_volume = gas_volume1)
+        print(line.name, ' - ', amplification.amplif)
